@@ -1,0 +1,192 @@
+version: '3.8'
+
+x-airflow-env: &airflow-env
+  AIRFLOW__WEBSERVER__SECRET_KEY: adminadmin
+  AIRFLOW__CORE__EXECUTOR: LocalExecutor
+  AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres/airflow
+  AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+
+services:
+
+  spark-master:
+    build: ./spark
+    container_name: spark-master
+    environment:
+      - SPARK_MODE=master
+      - SPARK_MASTER_HOST=spark-master
+      - SPARK_MASTER_PORT=7077
+      - SPARK_MASTER_WEBUI_PORT=8080
+    volumes:
+      - ./spark/apps:/opt/spark/work-dir
+      - ./spark/jars:/jars
+    networks:
+      - hive_networking
+    command: tail -f /dev/null
+
+  hms-postgres:
+    image: postgres
+    container_name: hms-postgres
+    environment:
+      POSTGRES_DB: metastore
+      POSTGRES_USER: hive
+      POSTGRES_PASSWORD: changeme
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - hive_networking
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hive"]
+      interval: 10s
+      retries: 5
+    restart: unless-stopped
+
+  hive-metastore:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    depends_on:
+      hms-postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: hms-postgres
+      DB_PORT: 5432
+      DB_NAME: metastore
+      DB_USER: hive
+      DB_PASSWORD: changeme
+      HIVE_METASTORE_PORT: 9083
+    ports:
+      - "9083:9083"
+    volumes:
+      - metastore_logs:/opt/hive-metastore/logs
+    networks:
+      - hive_networking
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio
+    container_name: minio
+    environment:
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=password
+      - MINIO_DOMAIN=minio
+    networks:
+      hive_networking:
+        aliases:
+          - warehouse.minio
+    volumes:
+      - ./warehouse:/data
+    ports:
+      - 9001:9001
+      - 9000:9000
+    command: ["server", "/data", "--console-address", ":9001"]
+
+  airflow-postgres:
+    image: postgres:13
+    container_name: airflow-postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - airflow_db:/var/lib/postgresql/data
+    networks:
+      - hive_networking
+
+  airflow-init:
+    build:
+      context: ./airflow
+      dockerfile: Dockerfile
+    container_name: airflow-init
+    depends_on:
+      - airflow-postgres
+    environment:
+      <<: *airflow-env
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/maestro:/opt/airflow/maestro
+      - ./airflow/apps:/opt/airflow/apps
+      - ./airflow/metadata:/opt/airflow/metadata
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+    entrypoint: >
+      bash -c "
+        airflow db migrate &&
+        if ! airflow users list | grep -q admin; then
+          airflow users create \
+            --username admin --password admin \
+            --firstname admin --lastname admin \
+            --role Admin --email admin@example.com;
+        fi
+      "
+    networks:
+      - hive_networking
+
+  airflow-webserver:
+    build:
+      context: ./airflow
+      dockerfile: Dockerfile
+    container_name: airflow-webserver
+    depends_on:
+      - airflow-init
+    environment:
+      <<: *airflow-env
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/maestro:/opt/airflow/maestro
+      - ./airflow/apps:/opt/airflow/apps
+      - ./airflow/metadata:/opt/airflow/metadata
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+    ports:
+      - "8081:8080"
+    command: webserver
+    networks:
+      - hive_networking
+
+  airflow-scheduler:
+    build:
+      context: ./airflow
+      dockerfile: Dockerfile
+    container_name: airflow-scheduler
+    depends_on:
+      - airflow-webserver
+    environment:
+      <<: *airflow-env
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/maestro:/opt/airflow/maestro
+      - ./airflow/apps:/opt/airflow/apps
+      - ./airflow/metadata:/opt/airflow/metadata
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+    command: scheduler
+    networks:
+      - hive_networking
+
+  airflow-triggerer:
+    build:
+      context: ./airflow
+      dockerfile: Dockerfile
+    container_name: airflow-triggerer
+    depends_on:
+      - airflow-scheduler
+    environment:
+      <<: *airflow-env
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/maestro:/opt/airflow/maestro
+      - ./airflow/apps:/opt/airflow/apps
+      - ./airflow/metadata:/opt/airflow/metadata
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+    command: triggerer
+    networks:
+      - hive_networking
+
+volumes:
+  postgres_data:
+  metastore_logs:
+  airflow_db:
+
+networks:
+  hive_networking:

@@ -1,0 +1,97 @@
+{
+    "country": "Maroc",
+           "verticals": {
+               "SAHAM_BANK": {
+                   "disable": false,
+                   "mandatory": false,
+                   "phases": {
+                       "ingestion": {
+                           "disable": false,
+                           "systeme_source": {
+                            "pwd": {
+                                "disable": false,
+                                   "flux": [
+                                    {"name": "ACTION_LIST", "mandatory": false, "disable": false},
+                                    {"name": "BANK", "mandatory": false, "disable": false},
+                                    {"name": "BRANCH", "mandatory": false, "disable": false},  
+                                    {"name": "CARD_FEES", "mandatory": false, "disable": false},
+                                    {"name": "CARD_PRODUCT", "mandatory": false, "disable": false},
+                                    {"name": "CARD_REPLACE", "mandatory": false, "disable": false},
+                                    {"name": "CREANCE_MB", "mandatory": false, "disable": false},
+                                    {"name": "CREANCE", "mandatory": false, "disable": false},
+                                    {"name": "CURRENCY_TABLE", "mandatory": false, "disable": false},
+                                    {"name": "EQDOM_RECHARGE_INFO", "mandatory": false, "disable": false},
+                                    {"name": "EXCEPTION_FILE_DOTATION", "mandatory": false, "disable": false},
+                                    {"name": "MCC", "mandatory": false, "disable": false},
+                                    {"name": "MIGRATION_VISA_HST", "mandatory": false, "disable": false},
+                                    {"name": "MIGRATION_VISA", "mandatory": false, "disable": false},
+                                    {"name": "NETWORK", "mandatory": false, "disable": false},
+                                    {"name": "P7_ACTION_WHEN_EVENT", "mandatory": false, "disable": false},
+                                    {"name": "PLASTIC_LIST", "mandatory": false, "disable": false},
+                                    {"name": "PORTEURS", "mandatory": false, "disable": false},
+                                    {"name": "PROCESSING_LIST", "mandatory": false, "disable": false},
+                                    {"name": "STATUS_LIST", "mandatory": false, "disable": false},
+                                    {"name": "STOP_LIST_CARD_BIN_RANGE", "mandatory": false, "disable": false},
+                                    {"name": "TRANSACTIONS_DEFINITION", "mandatory": false, "disable":false},
+                                    {"name": "UNIPAY_FINANCIAL_LOG", "mandatory": false, "disable": false},
+                                    {"name": "UNIPAY_MOB_FINANCIAL_LOG", "mandatory": false, "disable": false},
+                                    {"name": "AUTHO_ACTIVITY_SAF", "mandatory": false, "disable": false},
+                                    {"name": "AUTHO_ACTIVITY_HST", "mandatory": false, "disable": false},
+                                    {"name": "AUTHO_ACTIVITY_MSC", "mandatory": false, "disable": false},
+                                    {"name": "AUTHO_ACTIVITY_MTH", "mandatory": false, "disable": false},
+                                    {"name": "AUTHO_ACTIVITY_ADM", "mandatory": false, "disable": false},
+                                    {"name": "AUTHO_ACTIVITY_ATM", "mandatory": false, "disable": false},
+                                    {"name": "AUTHO_ACTIVITY_FEE", "mandatory": false, "disable": false},
+                                    {"name": "AUTHO_ACTIVITY_ASM", "mandatory": false, "disable": false},
+                                    {"name": "MERCHANT", "mandatory": false, "disable": false},
+                                    {"name": "TERMINAL_ATM_WATCH_WARNING_HT", "mandatory": false, "disable": false},
+                                    {"name": "TERMINAL_ATM", "mandatory": false, "disable": false},
+                                    {"name": "TRANSACTION_HIST_CARD", "mandatory": false, "disable": false},
+                                    {"name": "TRANSACTION_HIST", "mandatory": false, "disable": false}
+                                ]
+                            },
+                            "aquarius": {
+                                   "disable": false,
+                                   "flux": [
+                                    {"name": "D_ACCOUNTDETAILS", "mandatory": false, "disable": false},
+                                    {"name": "D_AGREEMENT", "mandatory": false, "disable": false},
+                                    {"name": "D_AGREEMENTDETAILS", "mandatory": false, "disable": false},
+                                    {"name": "D_CURRENCY", "mandatory": false, "disable": false},
+                                    {"name": "D_DATEPERIODE", "mandatory": false, "disable": false},
+                                    {"name": "D_TRANSLATABLESTRING", "mandatory": false, "disable": false},      
+                                    {"name": "F_AGREEMENTCONDITION", "mandatory": false, "disable": false},
+                                    {"name": "F_BALANCE", "mandatory": false, "disable": false},
+                                    {"name": "F_CONDITIONAVAILABILITY", "mandatory": false, "disable": false},      
+                                    {"name": "S_CONDITIONGENERAL", "mandatory": false, "disable": false},
+                                    {"name": "S_CONDITIONLIMIT", "mandatory": false, "disable": false},
+                                    {"name": "S_CONDITIONOUTPAYMENT", "mandatory": false, "disable": false},
+                                    {"name": "S_EXTRAFIELD", "mandatory": false, "disable": false},
+                                    {"name": "S_LEDGERITEM", "mandatory": false, "disable": false},
+                                    {"name": "S_PARTYEXTERNALREFERENCE", "mandatory": false, "disable": false},
+                                    {"name": "S_PAYEMENT", "mandatory": false, "disable": false},
+                                    {"name": "V_CLIENTSTATEMENTDETAIL", "mandatory": false, "disable": false},
+                                    {"name": "V_CLIENTSTATEMENTFEE", "mandatory": false, "disable": false}                                    
+                                   ]
+                               },
+                                "Colors": {
+                                "disable": false,
+                                "flux": [
+                                    {"name": "G_DOSSIER", "mandatory": false, "disable": false},
+                                    {"name": "G_ENCAISSEMENT", "mandatory": false, "disable": false},
+                                    {"name": "G_INDIVIDU", "mandatory": false, "disable": false},
+                                    {"name": "G_PERSONNEL", "mandatory": false, "disable": false},
+                                    {"name": "G_PIECE", "mandatory": false, "disable": false},
+                                    {"name": "G_PROVISIONS", "mandatory": false, "disable": false},
+                                    {"name": "T_ELEMENTS", "mandatory": false, "disable": false},
+                                    {"name": "T_INDIVIDU", "mandatory": false, "disable": false},
+                                    {"name": "T_INTERVENANTS", "mandatory": false, "disable": false},
+                                    {"name": "V_DOMAINE", "mandatory": false, "disable": false}
+                                                                                                         
+                                    ]
+                            }
+                           }
+                       }
+                   }
+               }
+           }
+   }
