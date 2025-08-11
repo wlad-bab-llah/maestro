@@ -5,11 +5,14 @@ import boto3
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.exceptions import AirflowSkipException
 import re
+from airflow.models import Variable
+import sys
+sys.path.insert(0, '/opt/airflow')
+from maestro.functionnality import functionnalities as fc
 
-BUCKET_NAME = 'data'
-ENDPOINT_URL = 'http://minio:9000'
-ACCESS_KEY = 'admin'
-SECRET_KEY = 'password'
+MINIO_CONFIG = Variable.get("MINIO_CONFIG", deserialize_json=True)
+
+
 
 default_args = {
     'owner': 'airflow',
@@ -18,59 +21,9 @@ default_args = {
     'retry_delay': timedelta(minutes=1),
 }
 
-def extract_date_from_filename(filename):
-    """Extract date from filename like delta_20240930.ctr"""
-    match = re.search(r'delta_(\d{8})\.ctr', filename)
-    if match:
-        date_str = match.group(1)
-        return datetime.strptime(date_str, '%Y%m%d').strftime('%Y%m%d')
-    return None
 
-def list_process_and_delete_files(**context):
-    s3 = boto3.client(
-        's3',
-        endpoint_url=ENDPOINT_URL,
-        aws_access_key_id=ACCESS_KEY,
-        aws_secret_access_key=SECRET_KEY
-    )
-    
-    # Get the list of all files
-    response = s3.list_objects_v2(Bucket=BUCKET_NAME)
-    files = [obj['Key'] for obj in response.get('Contents', [])]
-    
-    # Get already processed files from XCom
-    ti = context['ti']
-    processed_files = ti.xcom_pull(task_ids='list_and_process_new_files', key='processed_files') or []
-    new_files = list(set(files) - set(processed_files))
-    
-    if not new_files:
-        print("✅ No new files to process.")
-        raise AirflowSkipException("No files to process")
-    
-    # Extract execution_date from the first file (or modify logic as needed)
-    execution_date = None
-    for file_key in new_files:
-        date_from_file = extract_date_from_filename(file_key)
-        if date_from_file:
-            execution_date = date_from_file
-            break  # Use the first valid date found
-    
-    for file_key in new_files:
-        print(f"🎯 Processing file: {file_key}")
-        # Your processing logic here
-        
-        # Delete file after processing
-        try:
-            s3.delete_object(Bucket=BUCKET_NAME, Key=file_key)
-            print(f"🗑️ Deleted file: {file_key}")
-        except Exception as e:
-            print(f"❌ Failed to delete {file_key}: {e}")
-    
-    # Save updated processed list and execution_date
-    ti.xcom_push(key='processed_files', value=processed_files + new_files)
-    ti.xcom_push(key='execution_date', value=execution_date)
-    
-    print(f"📅 Extracted execution_date: {execution_date}")
+
+
 
 with DAG(
     dag_id='continuous_minio_watcher_with_delete',
@@ -82,7 +35,8 @@ with DAG(
     
     watch_process_delete = PythonOperator(
         task_id='list_and_process_new_files',
-        python_callable=list_process_and_delete_files,
+        python_callable=fc.Functionnalities.list_process_and_delete_files,
+        op_kwargs={"MINIO_CONFIG":MINIO_CONFIG},
         provide_context=True
     )
     

@@ -1,6 +1,9 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
+import sys
+sys.path.insert(0, '/opt/airflow')
+from maestro.functionnality import functionnalities as fc
 
 default_args = {
     'owner': 'airflow',
@@ -9,24 +12,24 @@ default_args = {
     'retry_delay': timedelta(minutes=1),
 }
 
-def print_execution_date(**context):
-    """Print the execution_date received from parent DAG"""
-    # Get the execution_date from the DAG run configuration
-    execution_date = context['dag_run'].conf.get('execution_date')
-    message = context['dag_run'].conf.get('message')
+# def print_execution_date(**context):
+#     """Print the execution_date received from parent DAG"""
+#     # Get the execution_date from the DAG run configuration
+#     execution_date = context['dag_run'].conf.get('execution_date')
+#     message = context['dag_run'].conf.get('message')
     
-    print("=" * 50)
-    print("📅 EXECUTION DATE FROM FILE WATCHER")
-    print("=" * 50)
-    print(f"📅 Execution Date: {execution_date}")
-    print(f"💬 Message: {message}")
-    print(f"🔍 Full Configuration: {context['dag_run'].conf}")
-    print("=" * 50)
+#     print("=" * 50)
+#     print("📅 EXECUTION DATE FROM FILE WATCHER")
+#     print("=" * 50)
+#     print(f"📅 Execution Date: {execution_date}")
+#     print(f"💬 Message: {message}")
+#     print(f"🔍 Full Configuration: {context['dag_run'].conf}")
+#     print("=" * 50)
     
-    if execution_date:
-        print(f"✅ Successfully received date: {execution_date}")
-    else:
-        print("❌ No execution_date found in configuration")
+#     if execution_date:
+#         print(f"✅ Successfully received date: {execution_date}")
+#     else:
+#         print("❌ No execution_date found in configuration")
 
 with DAG(
     dag_id='chaine_child',
@@ -37,6 +40,12 @@ with DAG(
     
     print_date_task = PythonOperator(
         task_id='print_execution_date_task',
-        python_callable=print_execution_date,
+        python_callable=fc.Functionnalities.get_Xcom_Params,
+        op_kwargs={
+            "params" : [
+                "message",
+                "execution_date"
+            ]
+        },
         provide_context=True
     )
