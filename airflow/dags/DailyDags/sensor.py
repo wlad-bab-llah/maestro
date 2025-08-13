@@ -10,20 +10,14 @@ import sys
 sys.path.insert(0, '/opt/airflow')
 from maestro.functionnality import functionnalities as fc
 
+
 MINIO_CONFIG = Variable.get("MINIO_CONFIG", deserialize_json=True)
-
-
-
 default_args = {
     'owner': 'airflow',
     'start_date': datetime(2023, 1, 1),
     'retries': 0,
     'retry_delay': timedelta(minutes=1),
 }
-
-
-
-
 
 with DAG(
     dag_id='continuous_minio_watcher_with_delete',
@@ -42,7 +36,7 @@ with DAG(
     
     trigger_child = TriggerDagRunOperator(
         task_id="trigger_child_dag",
-        trigger_dag_id="chaine_child",
+        trigger_dag_id="chaine_quotidienne_maroc_pwd",
         conf={
             "message": "Hello from parent",
             "execution_date": "{{ ti.xcom_pull(task_ids='list_and_process_new_files', key='execution_date') }}"

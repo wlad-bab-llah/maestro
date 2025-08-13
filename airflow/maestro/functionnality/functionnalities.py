@@ -67,6 +67,7 @@ class Functionnalities:
         )
         
         # Get the list of all files
+        #response = s3.list_objects_v2(Bucket=BUCKET_NAME,Prefix="controls/")
         response = s3.list_objects_v2(Bucket=BUCKET_NAME)
         files = [obj['Key'] for obj in response.get('Contents', [])]
         

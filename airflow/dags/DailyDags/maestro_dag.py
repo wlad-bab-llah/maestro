@@ -9,11 +9,10 @@ Création de DAG ultra simple avec MAESTRO
  
 import sys
 sys.path.insert(0, '/opt/airflow')
- 
 from maestro import create_simple_dag
 
+
 # maestro import create_simple_dag
- 
 # Créer ton DAG en UNE SEULE LIGNE !
 dag = create_simple_dag(
     country="Maroc", 
