@@ -20,7 +20,7 @@ default_args = {
 }
 
 with DAG(
-    dag_id='continuous_minio_watcher_with_delete',
+    dag_id='delta_file_watcher',
     default_args=default_args,
     schedule_interval='*/1 * * * *',
     catchup=False,
@@ -30,13 +30,13 @@ with DAG(
     watch_process_delete = PythonOperator(
         task_id='list_and_process_new_files',
         python_callable=fc.Functionnalities.list_process_and_delete_files,
-        op_kwargs={"MINIO_CONFIG":MINIO_CONFIG},
+        op_kwargs={"MINIO_CONFIG":MINIO_CONFIG,"system":'delta'},
         provide_context=True
     )
     
     trigger_child = TriggerDagRunOperator(
         task_id="trigger_child_dag",
-        trigger_dag_id="chaine_quotidienne_maroc_pwd",
+        trigger_dag_id="chaine_quotidienne_maroc_delta",
         conf={
             "message": "Hello from parent",
             "execution_date": "{{ ti.xcom_pull(task_ids='list_and_process_new_files', key='execution_date') }}"
