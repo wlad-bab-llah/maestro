@@ -1,17 +1,30 @@
-# Use an official Java runtime as a parent image
-FROM openjdk:8-jdk
+# Use a modern, widely-supported Java LTS runtime as a parent image
+# Eclipse Temurin 17 is a stable LTS and broadly compatible with Hadoop/Hive
+FROM eclipse-temurin:17-jdk
+
+# Prevent interactive prompts during package installation (tzdata, etc.)
+ENV DEBIAN_FRONTEND=noninteractive
 
 
 # Set environment variables for Hadoop and Hive
 ENV HADOOP_VERSION 3.3.4
 ENV HIVE_VERSION 3.1.3
 ENV HADOOP_HOME /opt/hadoop
-ENV HIVE_HOME /opt/hive-metastore
+ENV HIVE_HOME /opt/hivemetastore
 ENV PATH $PATH:$HADOOP_HOME/bin:$HIVE_HOME/bin
 
 
 RUN apt-get update \
- && apt-get install -y wget netcat tar procps postgresql-client net-tools curl \
+ && apt-get install -y --no-install-recommends \
+         apt-utils \
+         ca-certificates \
+         wget \
+         netcat-openbsd \
+         tar \
+         procps \
+         postgresql-client \
+         net-tools \
+         curl \
  && rm -rf /var/lib/apt/lists/*
 
 # 2) Unpack Hadoop into /opt/hadoop
@@ -21,10 +34,10 @@ RUN wget https://archive.apache.org/dist/hadoop/common/hadoop-${HADOOP_VERSION}/
  && rm /tmp/hadoop-${HADOOP_VERSION}.tar.gz
 
 
-# 3) Unpack Hive standalone-metastore into /opt/hive-metastore
+# 3) Unpack Hive standalone-metastore into /opt/hivemetastore
 RUN wget https://repo1.maven.org/maven2/org/apache/hive/hive-standalone-metastore/${HIVE_VERSION}/hive-standalone-metastore-${HIVE_VERSION}-bin.tar.gz  -P /tmp \
- && mkdir -p /opt/hive-metastore \
- && tar -xzf /tmp/hive-standalone-metastore-${HIVE_VERSION}-bin.tar.gz -C /opt/hive-metastore --strip-components=1 \
+ && mkdir -p /opt/hivemetastore \
+ && tar -xzf /tmp/hive-standalone-metastore-${HIVE_VERSION}-bin.tar.gz -C /opt/hivemetastore --strip-components=1 \
  && rm /tmp/hive-standalone-metastore-${HIVE_VERSION}-bin.tar.gz
 
 

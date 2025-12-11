@@ -11,7 +11,7 @@ sys.path.insert(0, '/opt/airflow')
 from maestro.functionnality import functionnalities as fc
 
 
-MINIO_CONFIG = Variable.get("MINIO_CONFIG", deserialize_json=True)
+MINIO_CONFIG = Variable.get("MINIO_SECRET_CONFIG", deserialize_json=True)
 default_args = {
     'owner': 'airflow',
     'start_date': datetime(2023, 1, 1),

@@ -13,6 +13,8 @@ RUN set -eux; \
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
+COPY apps/CONFIG/airflow.cfg /opt/airflow/airflow.cfg
+
 # Install Spark provider
 USER airflow
 RUN pip install --no-cache-dir apache-airflow-providers-apache-spark

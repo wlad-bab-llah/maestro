@@ -36,11 +36,11 @@ clean:
 
 # Logs
 logs:
-	docker compose -f docker-compose.yml logs -f hive-metastore
+	docker compose -f docker-compose.yml logs -f hivemetastore
 
 # Schema initialization
 init-schema:
-	docker compose -f docker-compose.yml exec hive-metastore /opt/hive-metastore/bin/schematool -dbType postgres -initSchema
+	docker compose -f docker-compose.yml exec hivemetastore /opt/hivemetastore/bin/schematool -dbType postgres -initSchema
 
 # Backup
 #backup:

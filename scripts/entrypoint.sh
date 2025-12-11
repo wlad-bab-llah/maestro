@@ -2,7 +2,7 @@
 set -e
 
 # 1) Environment setup
-export HIVE_HOME=/opt/hive-metastore
+export HIVE_HOME=/opt/hivemetastore
 export HADOOP_HOME=/opt/hadoop
 export PATH="$HIVE_HOME/bin:$HADOOP_HOME/bin:$PATH"
 export JAVA_HOME=${JAVA_HOME:-$(readlink -f /usr/bin/java | sed "s:bin/java::")}
@@ -36,7 +36,7 @@ TABLE_COUNT=$(PGPASSWORD="$DB_PASSWORD" psql \
 
 if [[ "$TABLE_COUNT" -lt 5 ]]; then
   echo "[entrypoint] initializing Hive Metastore schema…"
-  /opt/hive-metastore/bin/schematool \
+  /opt/hivemetastore/bin/schematool \
     -dbType postgres \
     -initSchema \
     --verbose
@@ -48,7 +48,7 @@ fi
 echo "[entrypoint] starting Hive Metastore on port $HIVE_METASTORE_PORT"
 
 # Start in background first to check for immediate failures
-/opt/hive-metastore/bin/start-metastore -p "$HIVE_METASTORE_PORT" &
+/opt/hivemetastore/bin/start-metastore -p "$HIVE_METASTORE_PORT" &
 METASTORE_PID=$!
 
 # Wait a few seconds and check if it's still running

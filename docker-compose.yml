@@ -5,6 +5,9 @@ x-airflow-env: &airflow-env
   AIRFLOW__CORE__EXECUTOR: LocalExecutor
   AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres/airflow
   AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+  AIRFLOW__CORE__HIDE_SENSITIVE_VAR_CONN_FIELDS: "True"
+  AIRFLOW__CORE__SENSITIVE_VAR_CONN_NAMES: "MINIO_CONFIG"
+
 
 services:
 
@@ -20,11 +23,14 @@ services:
       - ./spark/apps:/opt/spark/work-dir
       - ./spark/jars:/jars
     networks:
-      - hive_networking
+      - hive-networking
     command: tail -f /dev/null
 
   hms-postgres:
-    image: postgres
+    # Pin to a specific newer Postgres major version for reproducible upgrades
+    # If you have existing data in the named volume, a proper pg_upgrade or dump/restore
+    # is required before changing major versions. See notes below.
+    image: postgres:15
     container_name: hms-postgres
     environment:
       POSTGRES_DB: metastore
@@ -33,14 +39,15 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - hive_networking
+      - hive-networking
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U hive"]
       interval: 10s
       retries: 5
     restart: unless-stopped
 
-  hive-metastore:
+  hivemetastore:
+    container_name: hivemetastore
     build:
       context: .
       dockerfile: docker/Dockerfile
@@ -57,9 +64,11 @@ services:
     ports:
       - "9083:9083"
     volumes:
-      - metastore_logs:/opt/hive-metastore/logs
+      - metastore_logs:/opt/hivemetastore/logs
     networks:
-      - hive_networking
+      hive-networking:
+        aliases:
+          - hivemetastore
     restart: unless-stopped
 
   minio:
@@ -68,9 +77,8 @@ services:
     environment:
       - MINIO_ROOT_USER=admin
       - MINIO_ROOT_PASSWORD=password
-      - MINIO_DOMAIN=minio
     networks:
-      hive_networking:
+      hive-networking:
         aliases:
           - warehouse.minio
     volumes:
@@ -81,7 +89,9 @@ services:
     command: ["server", "/data", "--console-address", ":9001"]
 
   airflow-postgres:
-    image: postgres:13
+    # Use a newer Postgres version for Airflow DB. If upgrading from an existing
+    # Postgres 13 data directory, run pg_upgrade or perform dump/restore to migrate data.
+    image: postgres:15
     container_name: airflow-postgres
     environment:
       POSTGRES_USER: airflow
@@ -90,7 +100,7 @@ services:
     volumes:
       - airflow_db:/var/lib/postgresql/data
     networks:
-      - hive_networking
+      - hive-networking
 
   airflow-init:
     build:
@@ -119,7 +129,7 @@ services:
         fi
       "
     networks:
-      - hive_networking
+      - hive-networking
 
   airflow-webserver:
     build:
@@ -141,7 +151,7 @@ services:
       - "8081:8080"
     command: webserver
     networks:
-      - hive_networking
+      - hive-networking
 
   airflow-scheduler:
     build:
@@ -161,7 +171,7 @@ services:
       - ./airflow/plugins:/opt/airflow/plugins
     command: scheduler
     networks:
-      - hive_networking
+      - hive-networking
 
   airflow-triggerer:
     build:
@@ -181,12 +191,57 @@ services:
       - ./airflow/plugins:/opt/airflow/plugins
     command: triggerer
     networks:
-      - hive_networking
+      - hive-networking
+#add dremio service
+  # dremio:
+  #   image: dremio/dremio-oss
+  #   container_name: dremio
+  #   ports:
+  #     - "9047:9047"      # Dremio UI
+  #     - "31010:31010"    # JDBC/ODBC
+  #     # - "32010:32010"  # (optional) Arrow Flight ODBC
+  #     # - "45678:45678"  # (optional) Fabric, multi-node
+  #   environment:
+  #     JAVA_TOOL_OPTIONS: "-Xms4g -Xmx4g -XX:MaxDirectMemorySize=12g -Dhadoop.home.dir=/opt/dremio"
+  #     # If you do NOT put creds in core-site.xml, uncomment:
+  #     AWS_EC2_METADATA_DISABLED: "true"
+  #     AWS_ACCESS_KEY_ID: "admin"
+  #     AWS_SECRET_ACCESS_KEY: "password"
+  #     AWS_REGION: "us-east-1"
+  #   volumes:
+  #     - ./dremio/conf:/opt/dremio/conf        # dremio.conf + core-site.xml
+  #     - ./dremio/data:/opt/dremio/data        # metadata
+  #     - ./dremio/spill:/opt/dremio/spill      # spill dirs (see dremio.conf)
+  #   networks:
+  #     hive-networking:
+  #       aliases:
+  #         - dremio
+  #   restart: unless-stopped
 
+  # # add dbeaver service
+  # dbeaver:
+  #   image: dbeaver/cloudbeaver:latest
+  #   container_name: dbeaver
+  #   ports:
+  #     - "8978:8978"  # DBeaver Web UI
+  #   environment:
+  #     - CB_ADMIN_NAME=admin
+  #     - CB_ADMIN_PASSWORD=admin
+  #   networks:
+  #     - hive-networking
+  #   restart: unless-stopped
+  #   volumes:
+  #     - dbeaver_data:/opt/dbeaver/workspace
+  #     - dbeaver_logs:/opt/dbeaver/logs
 volumes:
   postgres_data:
   metastore_logs:
   airflow_db:
+  dremio_data:
+  dbeaver_data:
+  dbeaver_logs:
+  
 
 networks:
-  hive_networking:
+  hive-networking:
+    name: hive-networking

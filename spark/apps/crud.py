@@ -5,7 +5,7 @@ spark = SparkSession.builder \
     .appName("IcebergApp") \
     .config("spark.sql.catalog.spark_catalog", "org.apache.iceberg.spark.SparkSessionCatalog") \
     .config("spark.sql.catalog.spark_catalog.type", "hive") \
-    .config("spark.sql.catalog.spark_catalog.uri", "thrift://hive-metastore:9083") \
+    .config("spark.sql.catalog.spark_catalog.uri", "thrift://hivemetastore:9083") \
     .config("spark.sql.catalog.spark_catalog.warehouse", "s3a://iceberg-warehouse/warehouse") \
     .config("spark.hadoop.fs.s3a.access.key", "admin") \
     .config("spark.hadoop.fs.s3a.secret.key", "password") \
