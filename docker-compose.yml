@@ -5,6 +5,12 @@ x-airflow-env: &airflow-env
   AIRFLOW__CORE__LOAD_EXAMPLES: "false"
   AIRFLOW__CORE__HIDE_SENSITIVE_VAR_CONN_FIELDS: "True"
   AIRFLOW__CORE__SENSITIVE_VAR_CONN_NAMES: "MINIO_CONFIG"
+  _AIRFLOW_WWW_USER_USERNAME: ${AIRFLOW_USER:-admin}
+  _AIRFLOW_WWW_USER_PASSWORD: ${AIRFLOW_PASSWORD:-admin}
+  _AIRFLOW_WWW_USER_EMAIL: ${AIRFLOW_EMAIL:-admin@example.com}
+  _AIRFLOW_WWW_USER_FIRSTNAME: ${AIRFLOW_FIRSTNAME:-admin}
+  _AIRFLOW_WWW_USER_LASTNAME: ${AIRFLOW_LASTNAME:-admin}
+  _AIRFLOW_WWW_USER_ROLE: ${AIRFLOW_ROLE:-Admin}
 
 
 services:
@@ -109,6 +115,9 @@ services:
       - airflow-postgres
     environment:
       <<: *airflow-env
+      MINIO_ENDPOINT_URL: ${MINIO_ENDPOINT:-http://minio:9000}
+      MINIO_ACCESS_KEY_ID: ${MINIO_ACCESS_KEY:-admin}
+      MINIO_SECRET_KEY_VAL: ${MINIO_SECRET_KEY:-password}
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/maestro:/opt/airflow/maestro
@@ -116,16 +125,7 @@ services:
       - ./airflow/metadata:/opt/airflow/metadata
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
-    entrypoint: >
-      bash -c "
-        airflow db migrate &&
-        if ! airflow users list | grep -q admin; then
-          airflow users create \
-            --username admin --password admin \
-            --firstname admin --lastname admin \
-            --role Admin --email admin@example.com;
-        fi
-      "
+    entrypoint: ["bash", "-c", "airflow db migrate && if ! airflow users list | grep -q \"$${_AIRFLOW_WWW_USER_USERNAME}\"; then airflow users create --username \"$${_AIRFLOW_WWW_USER_USERNAME}\" --password \"$${_AIRFLOW_WWW_USER_PASSWORD}\" --firstname \"$${_AIRFLOW_WWW_USER_FIRSTNAME}\" --lastname \"$${_AIRFLOW_WWW_USER_LASTNAME}\" --role \"$${_AIRFLOW_WWW_USER_ROLE}\" --email \"$${_AIRFLOW_WWW_USER_EMAIL}\"; fi && airflow variables set MINIO_SECRET_CONFIG \"{\\\"endpoint_url\\\": \\\"$${MINIO_ENDPOINT_URL}\\\", \\\"aws_access_key_id\\\": \\\"$${MINIO_ACCESS_KEY_ID}\\\", \\\"aws_secret_access_key\\\": \\\"$${MINIO_SECRET_KEY_VAL}\\\"}\""]
     networks:
       - hive-networking
 
@@ -190,130 +190,6 @@ services:
     command: triggerer
     networks:
       - hive-networking
-
-  # OpenMetadata services
-  openmetadata-elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.21
-    container_name: openmetadata-elasticsearch
-    environment:
-      - discovery.type=single-node
-      - ES_JAVA_OPTS=-Xms512m -Xmx512m
-    ports:
-      - "9200:9200"
-    networks:
-      - hive-networking
-    volumes:
-      - openmetadata_elasticsearch_data:/usr/share/elasticsearch/data
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-    restart: unless-stopped
-
-  # OpenMetadata requires MySQL (not PostgreSQL) — the server image uses the MySQL JDBC driver
-  openmetadata-mysql:
-    image: mysql:8.0
-    container_name: openmetadata-mysql
-    environment:
-      MYSQL_ROOT_PASSWORD: password
-      MYSQL_USER: openmetadata_user
-      MYSQL_PASSWORD: openmetadata_password
-      MYSQL_DATABASE: openmetadata_db
-    volumes:
-      - openmetadata_mysql_data:/var/lib/mysql
-    networks:
-      - hive-networking
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-ppassword"]
-      interval: 15s
-      timeout: 10s
-      retries: 10
-    restart: unless-stopped
-
-  # Runs DB schema migrations before the server starts (one-shot, exits 0 on success)
-  openmetadata-migrate:
-    image: openmetadata/server:1.3.0
-    container_name: openmetadata-migrate
-    depends_on:
-      openmetadata-mysql:
-        condition: service_healthy
-    environment:
-      DB_DRIVER_CLASS: com.mysql.cj.jdbc.Driver
-      DB_SCHEME: mysql
-      DB_USE_SSL: "false"
-      DB_USER: openmetadata_user
-      DB_USER_PASSWORD: openmetadata_password
-      DB_HOST: openmetadata-mysql
-      DB_PORT: 3306
-      OM_DATABASE: openmetadata_db
-    command: ["//opt/openmetadata/bootstrap/openmetadata-ops.sh", "migrate"]
-    networks:
-      - hive-networking
-    restart: "no"
-
-  openmetadata:
-    image: openmetadata/server:1.3.0
-    container_name: openmetadata
-    depends_on:
-      openmetadata-migrate:
-        condition: service_completed_successfully
-      openmetadata-elasticsearch:
-        condition: service_healthy
-    environment:
-      # Database (MySQL)
-      DB_DRIVER_CLASS: com.mysql.cj.jdbc.Driver
-      DB_SCHEME: mysql
-      DB_USE_SSL: "false"
-      DB_USER: openmetadata_user
-      DB_USER_PASSWORD: openmetadata_password
-      DB_HOST: openmetadata-mysql
-      DB_PORT: 3306
-      OM_DATABASE: openmetadata_db
-      # Elasticsearch
-      ELASTICSEARCH_HOST: openmetadata-elasticsearch
-      ELASTICSEARCH_PORT: "9200"
-      ELASTICSEARCH_SCHEME: http
-      # Airflow pipeline service
-      AIRFLOW_HOST: http://airflow-webserver:8080
-      SERVER_HOST_API_URL: http://openmetadata:8585/api
-      AIRFLOW_AUTH_PROVIDER: "basic"
-      OM_AUTH_AIRFLOW_USERNAME: admin
-      OM_AUTH_AIRFLOW_PASSWORD: admin
-    ports:
-      - "8585:8585"
-    networks:
-      hive-networking:
-        aliases:
-          - openmetadata
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8585/healthcheck"]
-      interval: 30s
-      timeout: 10s
-      retries: 10
-      start_period: 120s
-    restart: unless-stopped
-
-  # ── ngrok tunnel ──────────────────────────────────────────────────────────
-  # Exposes Jenkins publicly so GitHub webhooks can reach it.
-  # Requires a free ngrok account — set NGROK_AUTHTOKEN in .env
-  # Once running, get the public URL with:
-  #   curl -s http://localhost:4040/api/tunnels | python -m json.tool
-  # Use that URL as the GitHub webhook payload URL:
-  #   https://<random>.ngrok-free.app/github-webhook/
-  ngrok:
-    image: ngrok/ngrok:latest
-    container_name: ngrok
-    command: http jenkins:8080
-    environment:
-      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
-    ports:
-      - "4040:4040"     # ngrok inspection UI
-    networks:
-      - hive-networking
-    depends_on:
-      - jenkins
-    restart: unless-stopped
 
   # ── Nexus Repository Manager ──────────────────────────────────────────────
   # Artifact store for Jenkins CI/CD pipeline.
@@ -417,9 +293,6 @@ volumes:
   dremio_data:
   dbeaver_data:
   dbeaver_logs:
-  openmetadata_mysql_data:
-  openmetadata_elasticsearch_data:
-  openmetadata_data:
   nexus_data:
   jenkins_data:
   

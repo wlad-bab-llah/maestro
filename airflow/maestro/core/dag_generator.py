@@ -24,7 +24,7 @@ class MaestroDAGGenerator:
         try:
             logger.info(f"🚀 Generating DAG for {country}/{vertical}")
             config = self.config_loader.load_config(country, vertical)
-            dag = self._create_dag_structure(config, system_filter, dag_params)
+            dag = self._create_dag_structure(config, vertical, system_filter, dag_params)
             tasks = self._generate_tasks(dag, config, system_filter)
             self._setup_dependencies(dag, tasks)
             logger.info(f"✅ DAG generated successfully: {dag.dag_id}")
@@ -33,7 +33,7 @@ class MaestroDAGGenerator:
             error_msg = f"Failed to generate DAG for {country}/{vertical}: {e}"
             logger.error(f"❌ {error_msg}")
             raise DAGGenerationError(error_msg) from e
-    def _create_dag_structure(self, config: Dict[str, Any], system_filter: Optional[str], dag_params: Optional[Dict[str, Any]]) -> DAG:
+    def _create_dag_structure(self, config: Dict[str, Any], vertical: str, system_filter: Optional[str], dag_params: Optional[Dict[str, Any]]) -> DAG:
         """Create basic DAG structure"""
         # Default DAG parameters
         default_params = {
@@ -49,9 +49,9 @@ class MaestroDAGGenerator:
         if dag_params:
             default_params.update(dag_params)
         # Generate DAG components
-        dag_id = self._generate_dag_id(config, system_filter)
-        description = self._generate_dag_description(config, system_filter)
-        tags = self._generate_dag_tags(config, system_filter)
+        dag_id = self._generate_dag_id(config, vertical, system_filter)
+        description = self._generate_dag_description(config, vertical, system_filter)
+        tags = self._generate_dag_tags(config, vertical, system_filter)
         # Create DAG
         dag = DAG(
             dag_id=dag_id,
@@ -64,22 +64,22 @@ class MaestroDAGGenerator:
         )
         logger.info(f"🏗️ DAG structure created: {dag_id}")
         return dag
-    def _generate_dag_id(self, config: Dict[str, Any], system_filter: Optional[str]) -> str:
+    def _generate_dag_id(self, config: Dict[str, Any], vertical: str, system_filter: Optional[str]) -> str:
         """Generate unique DAG ID"""
-        base_id = f"chaine_quotidienne_{config['country'].lower()}"
+        base_id = f"chaine_quotidienne_{config['country'].lower()}_{vertical.lower()}"
         if system_filter:
             base_id += f"_{system_filter}"
         return base_id
-    def _generate_dag_description(self, config: Dict[str, Any], system_filter: Optional[str]) -> str:
+    def _generate_dag_description(self, config: Dict[str, Any], vertical: str, system_filter: Optional[str]) -> str:
         """Generate DAG description"""
-        desc = f"MAESTRO Pipeline pour {config['country']}"
+        desc = f"MAESTRO Pipeline pour {config['country']}/{vertical}"
         if system_filter:
             desc += f" (Système: {system_filter})"
         desc += " - Configuration externe"
         return desc
-    def _generate_dag_tags(self, config: Dict[str, Any], system_filter: Optional[str]) -> List[str]:
+    def _generate_dag_tags(self, config: Dict[str, Any], vertical: str, system_filter: Optional[str]) -> List[str]:
         """Generate DAG tags"""
-        tags = ['maestro', 'ingestion', config['country'].lower()]
+        tags = ['maestro', 'ingestion', config['country'].lower(), vertical.lower()]
         if system_filter:
             tags.append(system_filter)
         return tags

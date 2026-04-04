@@ -36,7 +36,7 @@ with DAG(
     
     trigger_child = TriggerDagRunOperator(
         task_id="trigger_child_dag",
-        trigger_dag_id="chaine_quotidienne_maroc_pwd",
+        trigger_dag_id="chaine_quotidienne_maroc_saham_bank_delta",
         conf={
             "message": "Hello from parent",
             "execution_date": "{{ ti.xcom_pull(task_ids='list_and_process_new_files', key='execution_date') }}"
