@@ -1,3 +1,4 @@
+import random
 from pyspark.sql import SparkSession
 
 spark = SparkSession.builder \
@@ -14,7 +15,8 @@ data = [("Alice", 30), ("Bob", 25), ("Charlie", 35)]
 df = spark.createDataFrame(data, ["name", "age"])
 df.show()
 
-print("Spark version:", spark.version)
-print("Test completed successfully!")
+status = random.choice(["OK", "KO"])
+print(f"Spark job status: {status}")
 
+print("Spark version:", spark.version)
 spark.stop()
