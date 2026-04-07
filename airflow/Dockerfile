@@ -17,5 +17,5 @@ COPY apps/CONFIG/airflow.cfg /opt/airflow/airflow.cfg
 
 # Install Spark provider
 USER airflow
-RUN pip install --no-cache-dir apache-airflow-providers-apache-spark
+RUN pip install --no-cache-dir apache-airflow-providers-apache-spark apache-airflow-providers-amazon pyspark==3.5.3
 

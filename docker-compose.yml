@@ -5,6 +5,11 @@ x-airflow-env: &airflow-env
   AIRFLOW__CORE__LOAD_EXAMPLES: "false"
   AIRFLOW__CORE__HIDE_SENSITIVE_VAR_CONN_FIELDS: "True"
   AIRFLOW__CORE__SENSITIVE_VAR_CONN_NAMES: "MINIO_CONFIG"
+  # Remote logging to MinIO
+  AIRFLOW__LOGGING__REMOTE_LOGGING: "True"
+  AIRFLOW__LOGGING__REMOTE_BASE_LOG_FOLDER: "s3://logging/airflow/logs"
+  AIRFLOW__LOGGING__REMOTE_LOG_CONN_ID: "minio_s3"
+  AIRFLOW_CONN_MINIO_S3: "aws://admin:password@?endpoint_url=http%3A%2F%2Fminio%3A9000&region_name=us-east-1"
   _AIRFLOW_WWW_USER_USERNAME: ${AIRFLOW_USER:-admin}
   _AIRFLOW_WWW_USER_PASSWORD: ${AIRFLOW_PASSWORD:-admin}
   _AIRFLOW_WWW_USER_EMAIL: ${AIRFLOW_EMAIL:-admin@example.com}
@@ -107,12 +112,13 @@ services:
       - hive-networking
 
   airflow-init:
-    build: 
+    build:
       context: ./airflow
       dockerfile: Dockerfile
     container_name: airflow-init
     depends_on:
       - airflow-postgres
+      - minio
     environment:
       <<: *airflow-env
       MINIO_ENDPOINT_URL: ${MINIO_ENDPOINT:-http://minio:9000}
@@ -125,7 +131,7 @@ services:
       - ./airflow/metadata:/opt/airflow/metadata
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
-    entrypoint: ["bash", "-c", "airflow db migrate && if ! airflow users list | grep -q \"$${_AIRFLOW_WWW_USER_USERNAME}\"; then airflow users create --username \"$${_AIRFLOW_WWW_USER_USERNAME}\" --password \"$${_AIRFLOW_WWW_USER_PASSWORD}\" --firstname \"$${_AIRFLOW_WWW_USER_FIRSTNAME}\" --lastname \"$${_AIRFLOW_WWW_USER_LASTNAME}\" --role \"$${_AIRFLOW_WWW_USER_ROLE}\" --email \"$${_AIRFLOW_WWW_USER_EMAIL}\"; fi && airflow variables set MINIO_SECRET_CONFIG \"{\\\"endpoint_url\\\": \\\"$${MINIO_ENDPOINT_URL}\\\", \\\"aws_access_key_id\\\": \\\"$${MINIO_ACCESS_KEY_ID}\\\", \\\"aws_secret_access_key\\\": \\\"$${MINIO_SECRET_KEY_VAL}\\\"}\""]
+    entrypoint: ["bash", "-c", "airflow db migrate && if ! airflow users list | grep -q \"$${_AIRFLOW_WWW_USER_USERNAME}\"; then airflow users create --username \"$${_AIRFLOW_WWW_USER_USERNAME}\" --password \"$${_AIRFLOW_WWW_USER_PASSWORD}\" --firstname \"$${_AIRFLOW_WWW_USER_FIRSTNAME}\" --lastname \"$${_AIRFLOW_WWW_USER_LASTNAME}\" --role \"$${_AIRFLOW_WWW_USER_ROLE}\" --email \"$${_AIRFLOW_WWW_USER_EMAIL}\"; fi && airflow variables set MINIO_SECRET_CONFIG \"{\\\"endpoint_url\\\": \\\"$${MINIO_ENDPOINT_URL}\\\", \\\"aws_access_key_id\\\": \\\"$${MINIO_ACCESS_KEY_ID}\\\", \\\"aws_secret_access_key\\\": \\\"$${MINIO_SECRET_KEY_VAL}\\\"}\" && python -c \"import boto3; s3=boto3.client('s3',endpoint_url='$${MINIO_ENDPOINT_URL}',aws_access_key_id='$${MINIO_ACCESS_KEY_ID}',aws_secret_access_key='$${MINIO_SECRET_KEY_VAL}'); s3.create_bucket(Bucket='logging') if 'logging' not in [b['Name'] for b in s3.list_buckets()['Buckets']] else None; print('Logging bucket ready')\""]
     networks:
       - hive-networking
 
