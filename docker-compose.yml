@@ -5,10 +5,8 @@ x-airflow-env: &airflow-env
   AIRFLOW__CORE__LOAD_EXAMPLES: "false"
   AIRFLOW__CORE__HIDE_SENSITIVE_VAR_CONN_FIELDS: "True"
   AIRFLOW__CORE__SENSITIVE_VAR_CONN_NAMES: "MINIO_CONFIG"
-  # Remote logging to MinIO
-  AIRFLOW__LOGGING__REMOTE_LOGGING: "True"
-  AIRFLOW__LOGGING__REMOTE_BASE_LOG_FOLDER: "s3://logging/airflow/logs"
-  AIRFLOW__LOGGING__REMOTE_LOG_CONN_ID: "minio_s3"
+  # Remote logging settings now baked into the airflow image (see airflow/Dockerfile).
+  # Only the connection (with credentials) is provided at runtime here.
   AIRFLOW_CONN_MINIO_S3: "aws://admin:password@?endpoint_url=http%3A%2F%2Fminio%3A9000&region_name=us-east-1"
   _AIRFLOW_WWW_USER_USERNAME: ${AIRFLOW_USER:-admin}
   _AIRFLOW_WWW_USER_PASSWORD: ${AIRFLOW_PASSWORD:-admin}

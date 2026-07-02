@@ -13,6 +13,11 @@ RUN set -eux; \
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
+# Remote logging to MinIO/S3 (connection AIRFLOW_CONN_MINIO_S3 is provided at runtime)
+ENV AIRFLOW__LOGGING__REMOTE_LOGGING="True"
+ENV AIRFLOW__LOGGING__REMOTE_BASE_LOG_FOLDER="s3://logging/airflow/logs"
+ENV AIRFLOW__LOGGING__REMOTE_LOG_CONN_ID="minio_s3"
+
 COPY apps/CONFIG/airflow.cfg /opt/airflow/airflow.cfg
 
 # Install Spark provider
