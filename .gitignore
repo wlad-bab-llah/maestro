@@ -4,3 +4,5 @@
 **/__pycache__/
 airflow/logs/
 .env
+# MinIO/warehouse runtime data — not source, may contain PII
+warehouse/
